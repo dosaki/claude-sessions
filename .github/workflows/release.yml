@@ -1,0 +1,149 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.bump.outputs.tag }}
+      skipped: ${{ steps.bump.outputs.skipped }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine version bump
+        id: bump
+        run: |
+          # Find the latest semver tag, default to v0.0.0 if none exists
+          LATEST=$(git tag --list 'v*' --sort=-v:refname | head -n1)
+          if [ -z "$LATEST" ]; then
+            LATEST="v0.0.0"
+          fi
+
+          # Extract major.minor.patch
+          VERSION="${LATEST#v}"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+
+          # Scan commit messages since last tag for bump keywords
+          if [ "$LATEST" = "v0.0.0" ]; then
+            COMMITS=$(git log --format=%s)
+          else
+            COMMITS=$(git log "${LATEST}..HEAD" --format=%s)
+          fi
+
+          # Skip if no new commits since last tag
+          if [ -z "$COMMITS" ]; then
+            echo "skipped=true" >> "$GITHUB_OUTPUT"
+            echo "tag=" >> "$GITHUB_OUTPUT"
+            echo "No new commits since $LATEST — skipping release"
+            exit 0
+          fi
+
+          BUMP="patch"
+          while IFS= read -r msg; do
+            if echo "$msg" | grep -qiE '^major(\(.+\))?:'; then
+              BUMP="major"
+              break
+            elif echo "$msg" | grep -qiE '^feat(\(.+\))?:'; then
+              if [ "$BUMP" != "major" ]; then
+                BUMP="minor"
+              fi
+            fi
+          done <<< "$COMMITS"
+
+          case "$BUMP" in
+            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH + 1)) ;;
+          esac
+
+          NEW_TAG="v${MAJOR}.${MINOR}.${PATCH}"
+          echo "skipped=false" >> "$GITHUB_OUTPUT"
+          echo "tag=${NEW_TAG}" >> "$GITHUB_OUTPUT"
+          echo "Bump: $BUMP — $LATEST → $NEW_TAG"
+
+      - name: Create tag and release
+        if: steps.bump.outputs.skipped != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.bump.outputs.tag }}
+        run: |
+          git tag "$TAG"
+          git push origin "$TAG"
+          gh release create "$TAG" --generate-notes
+
+  build:
+    needs: version
+    if: needs.version.outputs.skipped != 'true'
+    strategy:
+      matrix:
+        include:
+          - os: macos-13
+            goos: darwin
+            goarch: amd64
+            artifact: claude-sessions-darwin-amd64.zip
+          - os: macos-latest
+            goos: darwin
+            goarch: arm64
+            artifact: claude-sessions-darwin-arm64.zip
+          - os: ubuntu-latest
+            goos: linux
+            goarch: amd64
+            artifact: claude-sessions-linux-amd64
+          - os: windows-latest
+            goos: windows
+            goarch: amd64
+            artifact: claude-sessions-windows-amd64.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+
+      # Linux: install OpenGL/X11 dev libraries required by Fyne
+      - name: Install Linux dependencies
+        if: matrix.goos == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1-mesa-dev xorg-dev
+
+      # macOS: build binary, generate assets, and assemble .app bundle
+      - name: Build (macOS)
+        if: matrix.goos == 'darwin'
+        env:
+          GOARCH: ${{ matrix.goarch }}
+          TAG: ${{ needs.version.outputs.tag }}
+        run: |
+          VERSION="${TAG#v}"
+          go build -trimpath -ldflags="-s -w" -o claude-sessions-bin ./cmd/claude-sessions
+          make icon
+          make app VERSION="$VERSION"
+          zip -r "${{ matrix.artifact }}" "Claude Sessions.app"
+
+      # Linux: standard build
+      - name: Build (Linux)
+        if: matrix.goos == 'linux'
+        env:
+          GOARCH: ${{ matrix.goarch }}
+        run: go build -trimpath -ldflags="-s -w" -o ${{ matrix.artifact }} ./cmd/claude-sessions
+
+      # Windows: build with -H windowsgui to suppress console window
+      - name: Build (Windows)
+        if: matrix.goos == 'windows'
+        shell: bash
+        run: go build -trimpath -ldflags="-s -w -H windowsgui" -o ${{ matrix.artifact }} ./cmd/claude-sessions
+
+      - name: Upload release asset
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.version.outputs.tag }}
+          ARTIFACT: ${{ matrix.artifact }}
+        run: gh release upload "$TAG" "$ARTIFACT" --clobber
