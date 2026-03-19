@@ -30,8 +30,8 @@ func init() {
 	}
 
 	// Reopen stdout and stderr to the attached console.
-	reopenStd(syscall.STD_OUTPUT_HANDLE, &os.Stdout)
-	reopenStd(syscall.STD_ERROR_HANDLE, &os.Stderr)
+	reopenStd(uintptr(syscall.STD_OUTPUT_HANDLE), &os.Stdout, &syscall.Stdout)
+	reopenStd(uintptr(syscall.STD_ERROR_HANDLE), &os.Stderr, &syscall.Stderr)
 }
 
 // needsConsole scans os.Args for flags that require terminal output.
@@ -45,18 +45,12 @@ func needsConsole() bool {
 	return false
 }
 
-func reopenStd(stdHandle uint32, target **os.File) {
-	h, _, _ := procGetStdHandle.Call(uintptr(stdHandle))
+func reopenStd(stdHandle uintptr, target **os.File, sysHandle *syscall.Handle) {
+	h, _, _ := procGetStdHandle.Call(stdHandle)
 	if h == 0 || h == uintptr(syscall.InvalidHandle) {
 		return
 	}
-	*target = os.NewFile(uintptr(h), "")
-
-	// Also fix the syscall-level handle so fmt.Print etc. work.
-	if stdHandle == syscall.STD_OUTPUT_HANDLE {
-		syscall.Stdout = syscall.Handle(h)
-	} else if stdHandle == syscall.STD_ERROR_HANDLE {
-		syscall.Stderr = syscall.Handle(h)
-	}
+	*target = os.NewFile(h, "")
+	*sysHandle = syscall.Handle(h)
 	_ = unsafe.Sizeof(h) // keep unsafe import used
 }
