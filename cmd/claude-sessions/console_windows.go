@@ -30,8 +30,8 @@ func init() {
 	}
 
 	// Reopen stdout and stderr to the attached console.
-	reopenStd(uintptr(int(syscall.STD_OUTPUT_HANDLE)), &os.Stdout, &syscall.Stdout)
-	reopenStd(uintptr(int(syscall.STD_ERROR_HANDLE)), &os.Stderr, &syscall.Stderr)
+	reopenStd(uintptr(int32(syscall.STD_OUTPUT_HANDLE)), &os.Stdout, &syscall.Stdout)
+	reopenStd(uintptr(int32(syscall.STD_ERROR_HANDLE)), &os.Stderr, &syscall.Stderr)
 }
 
 // needsConsole scans os.Args for flags that require terminal output.
