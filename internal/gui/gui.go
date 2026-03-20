@@ -71,8 +71,8 @@ type dashboard struct {
 	sortColumn     string
 	sortAsc        bool
 	filterProjects []string // if non-empty, only show these projects
-	notifyWaiting  bool     // if true, play a sound when a session enters "waiting"
-	prevWaiting    map[int]bool // PIDs that were already waiting last refresh
+	notifyWaiting  bool         // if true, play a sound on working → waiting/idle transitions
+	prevWorking    map[int]bool // PIDs that were working last refresh
 }
 
 func (d *dashboard) refresh(cpuThreshold float64) {
@@ -84,23 +84,28 @@ func (d *dashboard) refresh(cpuThreshold float64) {
 	filtered := discovery.FilterSessions(allSessions, d.filterProjects)
 
 	working, waiting, idle := 0, 0, 0
-	nowWaiting := make(map[int]bool)
-	newWaiting := false
+	nowWorking := make(map[int]bool)
+	shouldNotify := false
 	for _, s := range filtered {
 		switch s.Status {
 		case "working":
 			working++
+			nowWorking[s.PID] = true
 		case "waiting":
 			waiting++
-			nowWaiting[s.PID] = true
-			if d.notifyWaiting && !d.prevWaiting[s.PID] {
-				newWaiting = true
+			// Notify only when transitioning from working → waiting.
+			if d.notifyWaiting && d.prevWorking[s.PID] {
+				shouldNotify = true
 			}
 		default:
 			idle++
+			// Notify only when transitioning from working → idle.
+			if d.notifyWaiting && d.prevWorking[s.PID] {
+				shouldNotify = true
+			}
 		}
 	}
-	d.prevWaiting = nowWaiting
+	d.prevWorking = nowWorking
 
 	d.sessions = filtered
 	d.working = working
@@ -109,7 +114,7 @@ func (d *dashboard) refresh(cpuThreshold float64) {
 	discovery.SortSessions(d.sessions, d.sortColumn, d.sortAsc)
 	d.mu.Unlock()
 
-	if newWaiting {
+	if shouldNotify {
 		go playNotificationSound()
 	}
 }
@@ -315,7 +320,6 @@ func Run(cfg config.Config) {
 		sortColumn:     cfg.SortColumn,
 		sortAsc:        cfg.SortAsc,
 		filterProjects: cfg.FilterProjects,
-		prevWaiting:    make(map[int]bool),
 	}
 	d.refresh(cfg.CPUThreshold)
 
@@ -518,19 +522,10 @@ func Run(cfg config.Config) {
 	})
 	compactToggle.Checked = cfg.Compact
 
-	// Notification toggle — play a sound when a session starts waiting for input.
+	// Notification toggle — play a sound on working → waiting/idle transitions.
 	notifyToggle := widget.NewCheck("Notify", func(checked bool) {
 		d.mu.Lock()
 		d.notifyWaiting = checked
-		if checked {
-			// Seed current waiting set so existing sessions don't trigger immediately.
-			d.prevWaiting = make(map[int]bool)
-			for _, s := range d.sessions {
-				if s.Status == "waiting" {
-					d.prevWaiting[s.PID] = true
-				}
-			}
-		}
 		d.mu.Unlock()
 	})
 
