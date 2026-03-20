@@ -85,7 +85,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: macos-15
+          - os: macos-15-intel
             goos: darwin
             goarch: amd64
             artifact: claude-sessions-darwin-amd64.zip
