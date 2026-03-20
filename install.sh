@@ -43,6 +43,9 @@ if [ "$OS" = "darwin" ]; then
     fi
     cp -R "${TMP}/Claude Sessions.app" /Applications/
 
+    # Remove quarantine flag so Gatekeeper doesn't block the unsigned app
+    xattr -dr com.apple.quarantine "/Applications/Claude Sessions.app" 2>/dev/null || true
+
     echo "Symlinking binary to ${INSTALL_DIR}/claude-sessions..."
     sudo mkdir -p "$INSTALL_DIR"
     sudo ln -sf "/Applications/Claude Sessions.app/Contents/MacOS/claude-sessions" "${INSTALL_DIR}/claude-sessions"

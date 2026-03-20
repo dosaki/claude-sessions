@@ -38,8 +38,14 @@ curl -fsSL https://raw.githubusercontent.com/dosaki/claude-sessions/main/install
 ```
 
 This detects your OS and architecture, downloads the latest release, and installs it:
-- **macOS** — extracts the `.app` bundle to `/Applications` and symlinks the binary to `/usr/local/bin/claude-sessions`
+- **macOS** — installs `Claude Sessions.app` to `/Applications` (launchable from Spotlight/Launchpad) and symlinks the binary to `/usr/local/bin/claude-sessions`
 - **Linux** — installs the binary to `/usr/local/bin/claude-sessions`
+
+> **macOS Gatekeeper note:** Because the app is not signed with an Apple Developer certificate, macOS will block it on first launch. To allow it, run:
+> ```bash
+> xattr -dr com.apple.quarantine "/Applications/Claude Sessions.app"
+> ```
+> Or right-click the app in Finder → Open → click "Open" in the dialog.
 
 ### Windows (PowerShell)
 
