@@ -142,6 +142,7 @@ jobs:
         run: go build -trimpath -ldflags="-s -w -H windowsgui" -o ${{ matrix.artifact }} ./cmd/claude-sessions
 
       - name: Upload release asset
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ needs.version.outputs.tag }}
