@@ -30,8 +30,11 @@ func init() {
 	}
 
 	// Reopen stdout and stderr to the attached console.
-	reopenStd(uintptr(int32(syscall.STD_OUTPUT_HANDLE)), &os.Stdout, &syscall.Stdout)
-	reopenStd(uintptr(int32(syscall.STD_ERROR_HANDLE)), &os.Stderr, &syscall.Stderr)
+	// STD_OUTPUT_HANDLE (-11) and STD_ERROR_HANDLE (-12) are negative DWORD
+	// values. Use ^uintptr(N) to produce the correct unsigned representation
+	// on both 32-bit and 64-bit Windows without overflowing uintptr.
+	reopenStd(^uintptr(10), &os.Stdout, &syscall.Stdout)  // ^10 == -11 as unsigned
+	reopenStd(^uintptr(11), &os.Stderr, &syscall.Stderr)  // ^11 == -12 as unsigned
 }
 
 // needsConsole scans os.Args for flags that require terminal output.
