@@ -31,6 +31,26 @@ A dashboard that shows all running [Claude Code](https://docs.anthropic.com/en/d
 
 ## Installation
 
+### macOS / Linux (one-liner)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/dosaki/claude-sessions/main/install.sh | sh
+```
+
+This detects your OS and architecture, downloads the latest release, and installs it:
+- **macOS** — extracts the `.app` bundle to `/Applications` and symlinks the binary to `/usr/local/bin/claude-sessions`
+- **Linux** — installs the binary to `/usr/local/bin/claude-sessions`
+
+### Windows (PowerShell)
+
+```powershell
+irm https://raw.githubusercontent.com/dosaki/claude-sessions/main/install.ps1 | iex
+```
+
+Downloads the latest release and installs `claude-sessions.exe` to `~\.claude-sessions\bin`, adding it to your user `PATH`.
+
+### Build from source
+
 Requires Go 1.24+ and CGO (needed for Fyne's OpenGL bindings).
 
 ```bash
