@@ -49,6 +49,8 @@ func GetClaudeProcesses() []RawProc {
 
 	var entries []winProcEntry
 	if raw[0] == '[' {
+		// Best-effort: if the JSON array is malformed, entries stays nil
+		// and we fall through to returning no processes.
 		_ = json.Unmarshal([]byte(raw), &entries)
 	} else {
 		var single winProcEntry

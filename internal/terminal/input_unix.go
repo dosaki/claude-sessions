@@ -27,13 +27,16 @@ func EnableRawMode() error {
 }
 
 // DisableRawMode restores the terminal to its previous state.
+// Best-effort: if stty fails (e.g., stdin is no longer a TTY because
+// the process is exiting), there is nothing meaningful we can do — the
+// terminal session is ending anyway.
 func DisableRawMode() {
 	if savedTermState == "" {
 		return
 	}
 	cmd := exec.Command("stty", savedTermState)
 	cmd.Stdin = os.Stdin
-	cmd.Run()
+	_ = cmd.Run()
 	savedTermState = ""
 }
 

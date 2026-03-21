@@ -17,6 +17,8 @@ const jsonlTailBytes = 16384
 var HomeDir string
 
 func init() {
+	// Best-effort: if the home directory can't be resolved, JSONL-based
+	// status detection is silently disabled (HomeDir stays empty).
 	HomeDir, _ = os.UserHomeDir()
 }
 

@@ -4,9 +4,6 @@ package gui
 import (
 	"fmt"
 	"image/color"
-	"os/exec"
-	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -229,82 +226,6 @@ func (d *dashboard) summaryText() string {
 		parts = append(parts, fmt.Sprintf("%d idle", d.idle))
 	}
 	return strings.Join(parts, "  ·  ")
-}
-
-func shortenPath(path string) string {
-	home := discovery.HomeDir
-	if home != "" && strings.HasPrefix(path, home) && (len(path) == len(home) || path[len(home)] == '/') {
-		path = "~" + path[len(home):]
-	}
-	return path
-}
-
-func statusColor(status string) color.NRGBA {
-	switch status {
-	case "working":
-		return colorWorking
-	case "waiting":
-		return colorWaiting
-	default:
-		return colorIdle
-	}
-}
-
-func statusLabel(status string) string {
-	switch status {
-	case "working":
-		return "Working"
-	case "waiting":
-		return "Waiting for input"
-	default:
-		return "Idle"
-	}
-}
-
-func formatAgentsGUI(count int) string {
-	if count > 0 {
-		return strconv.Itoa(count) + " running"
-	}
-	return "none"
-}
-
-func formatProjectGUI(workDir string) string {
-	p := shortenPath(workDir)
-	if p == "" {
-		return "unknown"
-	}
-	// Shorten long paths to last 2 components
-	if len(p) > 40 {
-		sep := string(filepath.Separator)
-		parts := strings.Split(p, sep)
-		if len(parts) >= 2 {
-			p = "…" + sep + strings.Join(parts[len(parts)-2:], sep)
-		}
-	}
-	return p
-}
-
-func formatPercentGUI(val float64) string {
-	if val == 0 {
-		return "—"
-	}
-	return fmt.Sprintf("%.1f%%", val)
-}
-
-// playNotificationSound plays a short system alert sound.
-func playNotificationSound() {
-	switch runtime.GOOS {
-	case "darwin":
-		// macOS system glass sound — short and unobtrusive.
-		exec.Command("afplay", "/System/Library/Sounds/Glass.aiff").Run()
-	case "linux":
-		// Try PulseAudio bell, fall back to BEL character.
-		if err := exec.Command("paplay", "/usr/share/sounds/freedesktop/stereo/bell.oga").Run(); err != nil {
-			fmt.Print("\a")
-		}
-	default:
-		fmt.Print("\a") // terminal BEL
-	}
 }
 
 // Run starts the Fyne GUI dashboard.

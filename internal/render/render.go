@@ -3,7 +3,6 @@ package render
 
 import (
 	"fmt"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -12,6 +11,7 @@ import (
 	"claude-sessions/internal/config"
 	"claude-sessions/internal/discovery"
 	"claude-sessions/internal/terminal"
+	"claude-sessions/internal/util"
 )
 
 // Layout constants for column widths.
@@ -30,13 +30,7 @@ const (
 )
 
 // shortenPath replaces the home directory prefix with "~".
-func shortenPath(path string) string {
-	home := discovery.HomeDir
-	if home != "" && strings.HasPrefix(path, home) && (len(path) == len(home) || path[len(home)] == '/') {
-		path = "~" + path[len(home):]
-	}
-	return path
-}
+var shortenPath = util.ShortenPath
 
 func formatStatusDisplay(status string) string {
 	switch status {
@@ -55,11 +49,7 @@ func formatProject(workDir string, projectWidth int) string {
 		return ansi.Dim + "unknown" + ansi.Reset
 	}
 	if ansi.VisibleLen(project) > projectWidth {
-		sep := string(filepath.Separator)
-		parts := strings.Split(ansi.Re.ReplaceAllString(project, ""), sep)
-		if len(parts) >= 2 {
-			project = "…" + sep + strings.Join(parts[len(parts)-2:], sep)
-		}
+		project = util.TruncateProject(ansi.Re.ReplaceAllString(project, ""), projectWidth)
 	}
 	return project
 }
@@ -72,10 +62,11 @@ func formatAgents(count int) string {
 }
 
 func formatPercent(val float64) string {
+	s := util.FormatPercent(val)
 	if val == 0 {
-		return ansi.Dim + "—" + ansi.Reset
+		return ansi.Dim + s + ansi.Reset
 	}
-	return fmt.Sprintf("%.1f%%", val)
+	return s
 }
 
 func sessionRow(s discovery.Session, projectWidth int) string {
