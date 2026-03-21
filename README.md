@@ -8,6 +8,16 @@
 
 A dashboard that shows all running [Claude Code](https://docs.anthropic.com/en/docs/claude-code) sessions on your machine. Supports both a native GUI window (default) and a terminal-based dashboard.
 
+## Interface
+### GUI mode (default)
+![Claude Sessions GUI](./docs/gui.png)
+
+Note: there's a bug (at least on MacOS) if you launch this as an app, it won't focus the Claude Session. You need to launch it from a terminal with
+```bash
+claude-sessions
+```
+
+### Terminal dashboard (`--cli`)
 ```
  ◆ Claude Sessions Dashboard   2026-03-11 14:32:01  (refreshing every 2s · press Ctrl+C to exit)
 
