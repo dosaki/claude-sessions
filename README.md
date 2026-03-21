@@ -1,4 +1,10 @@
-# claude-sessions
+<p align="center">
+  <img src="./docs/logo.svg" alt="Claude Sessions logo" height="256">
+</p>
+
+<h1 align="center">
+    Claude Sessions Dashboard
+</h1>
 
 A dashboard that shows all running [Claude Code](https://docs.anthropic.com/en/docs/claude-code) sessions on your machine. Supports both a native GUI window (default) and a terminal-based dashboard.
 
