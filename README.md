@@ -12,10 +12,6 @@ A dashboard that shows all running [Claude Code](https://docs.anthropic.com/en/d
 ### GUI mode (default)
 ![Claude Sessions GUI](./docs/gui.png)
 
-Note: there's a bug (at least on MacOS) if you launch this as an app, it won't focus the Claude Session. You need to launch it from a terminal with
-```bash
-claude-sessions
-```
 
 ### Terminal dashboard (`--cli`)
 ```

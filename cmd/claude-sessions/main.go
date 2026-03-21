@@ -36,6 +36,8 @@ func fetchSessions(cfg config.Config) []discovery.Session {
 }
 
 func main() {
+	ensurePath()
+
 	var cfg config.Config
 	var intervalSec int
 	var useCLI bool
