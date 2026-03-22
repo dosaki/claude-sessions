@@ -85,7 +85,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: macos-15-intel
+          - os: macos-latest
             goos: darwin
             goarch: amd64
             artifact: claude-sessions-darwin-amd64.zip
@@ -119,6 +119,7 @@ jobs:
       - name: Build (macOS)
         if: matrix.goos == 'darwin'
         env:
+          CGO_ENABLED: "1"
           GOARCH: ${{ matrix.goarch }}
           TAG: ${{ needs.version.outputs.tag }}
         run: |
